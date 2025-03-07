@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    ports:
+      - ${PORT}:${PORT}
+    environment:
+      APP_ENV: ${APP_ENV}
+      PORT: ${PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT:  ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    depends_on:
+      mongo_db:
+        condition: service_healthy
+    networks:
+      - go_echo_mongo_network
+  mongo_db:
+    image: mongo:latest
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    ports:
+      - "${DB_PORT}:27017"
+    volumes:
+      - mongo_db_volume:/data/db
+    healthcheck:
+      test: ["CMD","mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - go_echo_mongo_network
+
+volumes:
+  mongo_db_volume:
+networks:
+  go_echo_mongo_network:
